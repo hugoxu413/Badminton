@@ -1,11 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './lib/supabase'
 
-const AVATARS = ['🏸','😊','🐼','🦊','🐱','🐻','🐯','🐸','🦁','🐺','🐧','🦄','🐙','🦋','🐨','🐮']
+const AVATARS = [
+  '🏸','🎾','⚽','🏀','🏈','⚾','🎱','🏓','🥊','🎿','🏊','🚴','🧘','🤸',
+  '😊','😎','🤩','😄','🥳','🤔','😴','🥵','🤠','😇','🤗','😏','🥰','😈','🤪','😤',
+  '🐼','🦊','🐱','🐻','🐯','🐸','🦁','🐺','🐧','🦄','🐙','🦋','🐨','🐮','🐷','🐔','🦆','🦅','🦉','🐝','🐢','🦎','🦖','🐳','🦈','🦊','🐰','🐭','🐹','🦝','🦨','🦡','🦫','🦦','🦥','🐿','🦔',
+  '🍕','🍜','🧋','☕','🍣','🍱','🍛','🍔','🌮','🍦','🎂','🍩','🍪','🍫','🥤','🍺','🥂','🍷',
+  '🌟','⚡','🔥','🌈','🌸','🌺','🌻','🌙','☀️','❄️','🌊','🍀','🌴','🌵','🎋','🍁','🌾',
+  '🎯','🏆','👑','💪','🎸','🎮','🎨','🎭','🎪','🎠','🚀','🛸','🌍','💎','🔮','🎁','🎉','🎊','✨','💫','🌠','🗿','🏰','🗽','🎡'
+]
 const WEEKDAY_TIMES = ['19:00','20:00','21:00']
 const WEEKEND_TIMES = ['09:00','10:00','11:00','14:00','15:00','19:00','20:00']
 const DAYS_ZH = ['日','一','二','三','四','五','六']
-const VENUES = ['貓羅羽球館','其他球館','待確認']
+const DEFAULT_VENUES = ['貓羅羽球館','豐原國民運動中心']
 
 function getDates(from, to) {
   const dates = [], cur = new Date(from), end = new Date(to)
@@ -109,6 +116,7 @@ export default function App() {
   const [newFrom, setNewFrom] = useState('')
   const [newTo, setNewTo] = useState('')
   const [newVenue, setNewVenue] = useState('貓羅羽球館')
+  const [venueHistory, setVenueHistory] = useState(DEFAULT_VENUES)
   const [joinCode, setJoinCode] = useState('')
   const [calMonth, setCalMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
@@ -182,6 +190,16 @@ export default function App() {
   }, [user])
 
   useEffect(() => { loadSessions() }, [loadSessions])
+
+  const loadVenueHistory = useCallback(async () => {
+    const { data } = await supabase.from('sessions').select('venue').not('venue', 'is', null)
+    if (data) {
+      const all = [...new Set([...DEFAULT_VENUES, ...data.map(d=>d.venue).filter(Boolean)])]
+      setVenueHistory(all)
+    }
+  }, [])
+
+  useEffect(() => { if(user) loadVenueHistory() }, [user, loadVenueHistory])
 
   const loadSession = useCallback(async (sessionId) => {
     setLoading(true)
@@ -477,7 +495,18 @@ export default function App() {
           </div>
           <div className="page">
             <div style={{marginBottom:14}}><div className="section-title">球局名稱</div><input className="inp" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="例：五月球局"/></div>
-            <div style={{marginBottom:14}}><div className="section-title">地點</div><select className="inp" value={newVenue} onChange={e=>setNewVenue(e.target.value)}>{VENUES.map(v=><option key={v}>{v}</option>)}</select></div>
+            <div style={{marginBottom:14}}>
+              <div className="section-title">地點</div>
+              <input className="inp" value={newVenue} onChange={e=>setNewVenue(e.target.value)} placeholder="輸入地點，或點下方快速選擇" maxLength={30}/>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+                {venueHistory.map(v=>(
+                  <button key={v} className="btn-sm" style={{fontSize:12,padding:'5px 10px',background:newVenue===v?'#16a34a':'#f0fdf4',color:newVenue===v?'#fff':'#16a34a',borderColor:newVenue===v?'#16a34a':'#bbf7d0'}} onClick={()=>setNewVenue(v)}>
+                    {DEFAULT_VENUES.includes(v)?'🏸':'📍'} {v}
+                  </button>
+                ))}
+              </div>
+              <p style={{fontSize:11,color:'#94a3b8',marginTop:6}}>💡 輸入新地點後建立球局，下次所有人都能快速選</p>
+            </div>
             <div style={{marginBottom:20}}>
               <div className="section-title">開放日期範圍</div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -497,8 +526,13 @@ export default function App() {
         <div className="fu">
           <div className="topbar">
             <button onClick={()=>setScreen('home')} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',marginBottom:8,borderRadius:10,padding:'4px 10px'}}>←</button>
-            <div className="topbar-title">{currentSession.title}</div>
-            <div className="topbar-sub">📍 {currentSession.venue} · {fmtDate(currentSession.date_from)} ～ {fmtDate(currentSession.date_to)}</div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <div className="topbar-title">{currentSession.title}</div>
+                <div className="topbar-sub">📍 {currentSession.venue} · {fmtDate(currentSession.date_from)} ～ {fmtDate(currentSession.date_to)}</div>
+              </div>
+              <button onClick={deleteSession} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',borderRadius:10,padding:'6px 10px',flexShrink:0,marginTop:2}}>🗑️ 刪除</button>
+            </div>
           </div>
           <div className="page">
             {currentSession.booking_status==='booked'&&(
