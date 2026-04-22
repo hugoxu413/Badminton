@@ -1,0 +1,15 @@
+{
+  "short_name": "羽球揪團",
+  "name": "羽球揪團 - 找時間打球",
+  "description": "和朋友找共同有空的時間，一起預約球場打羽球",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0f0f1a",
+  "background_color": "#0f0f1a",
+  "lang": "zh-TW"
+}
