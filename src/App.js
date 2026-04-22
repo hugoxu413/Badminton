@@ -185,16 +185,24 @@ export default function App() {
     if (j) { setJoinCode(j); setScreen('join') }
   }, [])
 
-  // ── Google 登入
-  const signInGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
+  // ── Magic Link 登入
+  const [emailInput, setEmailInput] = useState('')
+  const [magicSent, setMagicSent] = useState(false)
+
+  const sendMagicLink = async () => {
+    if (!emailInput.trim()) return
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: emailInput.trim(),
+      options: { emailRedirectTo: window.location.origin }
     })
+    setLoading(false)
+    if (error) { showToast('❌ 發送失敗，請確認 Email'); return }
+    setMagicSent(true)
   }
   const signOut = async () => {
     await supabase.auth.signOut()
-    setUser(null); setSessions([]); setScreen('home')
+    setUser(null); setSessions([]); setScreen('home'); setMagicSent(false); setEmailInput('')
   }
 
   // ── 讀取我的球局
@@ -353,15 +361,38 @@ export default function App() {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:32 }}>
           <div style={{ fontSize:72, marginBottom:16 }}>🏸</div>
           <div style={{ fontSize:28, fontWeight:900, color:'#15803d', marginBottom:6 }}>羽球揪團</div>
-          <div style={{ color:'#64748b', fontSize:14, marginBottom:40, textAlign:'center' }}>
+          <div style={{ color:'#64748b', fontSize:14, marginBottom:32, textAlign:'center' }}>
             和朋友找共同有空的時間<br />一起預約貓羅羽球館打球！
           </div>
-          <button className="btn-blue" style={{ maxWidth:280 }} onClick={signInGoogle}>
-            <span style={{ marginRight:8 }}>G</span> 用 Google 帳號登入
-          </button>
-          <p style={{ color:'#94a3b8', fontSize:12, marginTop:16, textAlign:'center' }}>
-            免費使用，換手機也不怕資料消失
-          </p>
+          {!magicSent ? (
+            <div style={{ width:'100%', maxWidth:320 }}>
+              <div style={{ color:'#64748b', fontSize:13, marginBottom:10, textAlign:'center' }}>
+                輸入你的 Email，我們寄一個登入連結給你
+              </div>
+              <input className="inp" style={{ marginBottom:12, textAlign:'center' }}
+                type="email" value={emailInput} onChange={e=>setEmailInput(e.target.value)}
+                placeholder="your@gmail.com"
+                onKeyDown={e=>e.key==='Enter'&&sendMagicLink()} />
+              <button className="btn-green" disabled={!emailInput.trim()||loading} onClick={sendMagicLink}>
+                {loading ? '寄送中…' : '寄送登入連結 →'}
+              </button>
+              <p style={{ color:'#94a3b8', fontSize:11, marginTop:12, textAlign:'center' }}>
+                免費使用，換手機也不怕資料消失
+              </p>
+            </div>
+          ) : (
+            <div style={{ textAlign:'center', maxWidth:300 }}>
+              <div style={{ fontSize:48, marginBottom:16 }}>📬</div>
+              <div style={{ fontWeight:700, color:'#15803d', fontSize:18, marginBottom:8 }}>連結已寄出！</div>
+              <div style={{ color:'#64748b', fontSize:14, marginBottom:20, lineHeight:1.6 }}>
+                請去 <strong>{emailInput}</strong> 收信<br />
+                點信裡的連結就會自動登入
+              </div>
+              <button className="btn-outline" style={{ fontSize:13 }} onClick={()=>setMagicSent(false)}>
+                重新輸入 Email
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -533,7 +564,7 @@ export default function App() {
               <div style={{ textAlign:'center', padding:'32px 0' }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>🔐</div>
                 <div style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>請先登入才能加入球局</div>
-                <button className="btn-blue" onClick={signInGoogle}>用 Google 登入</button>
+                <button className="btn-green" onClick={()=>setScreen('home')}>去登入</button>
               </div>
             ) : (
               <>
